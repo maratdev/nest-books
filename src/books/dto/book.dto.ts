@@ -1,6 +1,12 @@
-import { IsArray, IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import {
+  IsArray,
+  IsDateString,
+  IsNotEmpty,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
-export class BooksDTO {
+export class BookDTO {
   @IsString()
   @IsNotEmpty()
   @MaxLength(150)
@@ -10,9 +16,9 @@ export class BooksDTO {
   @IsString()
   author: string;
 
-  @IsString()
   @IsNotEmpty()
-  publicationDate: string;
+  @IsDateString() //ISO8601
+  publicationDate: Date;
 
   @IsArray()
   @IsString({ each: true })
