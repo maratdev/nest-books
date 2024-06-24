@@ -17,7 +17,7 @@ import { BookDTO } from './dto/book.dto';
 import { IdDto } from './dto/id.dto';
 import { UpdateBookDTO } from './dto/update-book.dto';
 import { Roles } from '../users/decorators/roles.decorator';
-import { RoleTypes } from '../users/types/role.enum';
+import { RoleTypes } from '../users/types/user.enum';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../users/guards/roles.guard';
 
@@ -27,7 +27,6 @@ import { RolesGuard } from '../users/guards/roles.guard';
   }),
 )
 @UseGuards(AuthGuard('jwt-refresh'), RolesGuard)
-@Roles(RoleTypes.User)
 @Controller('books')
 export class BooksController {
   constructor(private readonly booksService: BooksService) {}

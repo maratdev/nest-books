@@ -1,5 +1,5 @@
 import { IsEnum, IsNumber } from 'class-validator';
-import { RoleTypes } from '../types/role.enum';
+import { RoleTypes } from '../types/user.enum';
 
 export class RoleDto {
   @IsNumber()

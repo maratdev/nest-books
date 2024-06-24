@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -14,20 +15,42 @@ import { ConfigService } from '@nestjs/config';
 import { USER } from './constants';
 import { Tokens } from './types';
 import { UserModel } from '../users/model/user.model';
+import { EmailService } from '../email/email.service';
+import { LoginDto } from './dto/login.dto';
+import { EmailConfirmTypes } from '../users/types/user.enum';
+import { IUser } from './interfaces/user.i';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectModel(UserModel.name) private readonly userModel: Model<UserModel>,
     private readonly jwtService: JwtService,
+    private readonly emailService: EmailService,
     private readonly configService: ConfigService,
   ) {}
 
-  private hashData(data: string) {
+  async isAuthenticated(token: string) {
+    if (!token) {
+      throw new BadRequestException(USER.INVALID_TOKEN);
+    }
+    try {
+      const { email, userId } = await this.jwtService.decode(token);
+      await this.getDataUser({ email });
+      await this.userModel.findByIdAndUpdate(userId, {
+        emailActivate: EmailConfirmTypes.Confirmed,
+      });
+    } catch {
+      throw new BadRequestException(USER.INVALID_TOKEN);
+    }
+
+    return USER.CONFIRM_EMAIL;
+  }
+
+  private async hashData(data: string) {
     return hash(data, 10);
   }
 
-  async login(userDto: Omit<UserDto, 'username'>) {
+  async login(userDto: LoginDto): Promise<Tokens> {
     const user = await this.validateUser(userDto.email, userDto.password);
     const tokens = await this.getToken(
       <Types.ObjectId>user._id,
@@ -36,11 +59,13 @@ export class AuthService {
     );
     await this.updateRtHash(<Types.ObjectId>user._id, tokens.refresh_token);
     return {
-      ...tokens,
+      access_token: tokens.access_token,
     };
   }
 
-  async register(userDto: UserDto) {
+  async register(
+    userDto: UserDto,
+  ): Promise<Pick<IUser, '_id' | 'username' | 'email'>> {
     const salt = await genSalt(10);
     const user = await this.userModel.findOne(
       { email: userDto.email },
@@ -59,10 +84,11 @@ export class AuthService {
       userDto.email,
     );
     await this.updateRtHash(<Types.ObjectId>newUser._id, tokens.refresh_token);
-    return {
-      user: this.returnUserFields(addedUser),
-      ...tokens,
-    };
+    await this.emailService.sendEmailConfirm(
+      newUser.email,
+      tokens.access_token,
+    );
+    return this.returnUserFields(<IUser>addedUser);
   }
 
   async logout(id: Types.ObjectId) {
@@ -70,7 +96,7 @@ export class AuthService {
       .findByIdAndUpdate(
         id,
         {
-          hashedRt: '',
+          hashedRt: null,
         },
         {
           new: true,
@@ -79,7 +105,7 @@ export class AuthService {
       .select('hashedRt');
   }
 
-  async refreshTokens(id: Types.ObjectId, rt: string) {
+  async refreshTokens(id: Types.ObjectId, rt: string): Promise<Tokens> {
     const user = await this.userModel.findById(id);
     if (!user || !user.hashedRt) throw new ForbiddenException(USER.NOT_FOUND);
 
@@ -88,7 +114,7 @@ export class AuthService {
 
     const tokens = await this.getToken(<Types.ObjectId>user._id, user.email);
     await this.updateRtHash(<Types.ObjectId>user._id, tokens.refresh_token);
-    return tokens;
+    return { access_token: tokens.access_token };
   }
 
   async getToken(
@@ -124,7 +150,7 @@ export class AuthService {
   }
 
   //--------------------- Вспомогательные методы --------------------/
-  private returnUserFields(user: UserModel) {
+  private returnUserFields(user: Pick<IUser, '_id' | 'username' | 'email'>) {
     return {
       _id: user._id,
       username: user.username,
@@ -134,7 +160,7 @@ export class AuthService {
 
   private async getDataUser({
     email,
-  }: Pick<UserDto, 'email'>): Promise<UserModel> {
+  }: Pick<IUser, 'email'>): Promise<UserModel> {
     const check = await this.userModel.findOne({ email });
     if (!check) throw new NotFoundException(USER.NOT_FOUND);
     return check;
@@ -145,7 +171,6 @@ export class AuthService {
     password: string,
   ): Promise<Pick<UserModel, 'email' | '_id' | 'role'>> {
     const user = await this.getDataUser({ email });
-
     const isMatch = await compare(password, user.password);
     if (!isMatch) throw new UnauthorizedException(USER.LOGIN_EXIST);
     return { email: user.email, role: user.role, _id: user._id };

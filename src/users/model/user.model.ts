@@ -1,5 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
+import {
+  EmailConfirmTypes,
+  RoleTypes,
+  TEmailConfirm,
+  TRoleTypes,
+} from '../types/user.enum';
 
 @Schema({
   collection: 'users',
@@ -7,8 +13,8 @@ import { Document } from 'mongoose';
 })
 export class UserModel extends Document {
   @Prop({
-    required: true,
     maxlength: 150,
+    required: true,
   })
   username: string;
 
@@ -23,12 +29,19 @@ export class UserModel extends Document {
   email: string;
 
   @Prop({
-    default: 2,
+    enum: RoleTypes,
+    default: RoleTypes.User,
   })
-  role: number;
+  role: TRoleTypes;
 
   @Prop()
   hashedRt: string;
+
+  @Prop({
+    enum: EmailConfirmTypes,
+    default: EmailConfirmTypes.Unconfirmed,
+  })
+  emailActivate: TEmailConfirm;
 }
 
 export const UserSchema = SchemaFactory.createForClass(UserModel);

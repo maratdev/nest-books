@@ -8,7 +8,7 @@ export type JwtPayload = {
   userId: Types.ObjectId;
   email: string;
   role: number;
-  refreshToken?: string;
+  jwt?: string;
 };
 
 @Injectable()

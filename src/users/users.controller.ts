@@ -19,9 +19,10 @@ import { Types } from 'mongoose';
 import { UsersService } from './users.service';
 import { RoleDto } from './dto/role-user.dto';
 import { Roles } from './decorators/roles.decorator';
-import { RoleTypes } from './types/role.enum';
+import { RoleTypes } from './types/user.enum';
 import { ParseObjectIdPipe } from './pipes/id.validation.pipes';
 import { RolesGuard } from './guards/roles.guard';
+import { LoginDto } from '../auth/dto/login.dto';
 
 @UsePipes(
   new ValidationPipe({
@@ -36,6 +37,12 @@ export class UsersController {
   ) {}
 
   //---------------------------------Auth------------------------------------/
+  @Get('confirm/:id')
+  @HttpCode(HttpStatus.OK)
+  confirm(@Param('id') token: string) {
+    return this.authService.isAuthenticated(token);
+  }
+
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   register(@Body() user: UserDto) {
@@ -44,7 +51,7 @@ export class UsersController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  login(@Body() user: Omit<UserDto, 'username'>) {
+  login(@Body() user: LoginDto) {
     return this.authService.login(user);
   }
 
@@ -59,7 +66,7 @@ export class UsersController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   refreshToken(
-    @GetCurrentUser('refreshToken') refreshToken: string,
+    @GetCurrentUser('jwt') refreshToken: string,
     @GetCurrentUser('userId') id: Types.ObjectId,
   ) {
     return this.authService.refreshTokens(id, refreshToken);
@@ -67,8 +74,7 @@ export class UsersController {
 
   //-------------------------- Users---------------------------------------/
 
-  @UseGuards(AuthGuard('jwt-refresh'), RolesGuard)
-  @Roles(RoleTypes.User, RoleTypes.Admin)
+  @UseGuards(AuthGuard('jwt-refresh'))
   @Get('me')
   async getUser(@GetCurrentUser('userId') id: Types.ObjectId) {
     return this.usersService.getDataUser(id);

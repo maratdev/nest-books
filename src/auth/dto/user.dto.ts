@@ -1,5 +1,6 @@
 import {
   IsEmail,
+  IsEnum,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -7,6 +8,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { RoleTypes, TRoleTypes } from '../../users/types/user.enum';
 
 export class UserDto {
   @IsString()
@@ -26,5 +28,6 @@ export class UserDto {
 
   @IsOptional()
   @IsNumber()
-  role?: number;
+  @IsEnum(RoleTypes)
+  role?: TRoleTypes;
 }

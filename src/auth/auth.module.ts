@@ -8,9 +8,11 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { UserModel, UserSchema } from '../users/model/user.model';
 import { AtStrategy } from './strategies/at.strategy';
 import { RtStrategy } from './strategies/rt.strategy';
+import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
+    EmailModule,
     MongooseModule.forFeatureAsync([
       {
         name: UserModel.name,

@@ -14,3 +14,11 @@ export enum RoleTypes {
   Admin = ACCESS_ADMIN | BOOK_CREATE | BOOK_UPDATE | BOOK_DELETE | USERS_VIEW, // 31
   User = USERS_VIEW,
 }
+export type TRoleTypes = (typeof RoleTypes)[keyof typeof RoleTypes];
+
+export enum EmailConfirmTypes {
+  Confirmed = 1,
+  Unconfirmed = 0,
+}
+export type TEmailConfirm =
+  (typeof EmailConfirmTypes)[keyof typeof EmailConfirmTypes];
