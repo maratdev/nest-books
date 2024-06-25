@@ -52,12 +52,8 @@ export class AuthService {
 
   async login(userDto: LoginDto): Promise<Tokens> {
     const user = await this.validateUser(userDto.email, userDto.password);
-    const tokens = await this.getToken(
-      <Types.ObjectId>user._id,
-      user.email,
-      user.role,
-    );
-    await this.updateRtHash(<Types.ObjectId>user._id, tokens.refresh_token);
+    const tokens = await this.getToken(user._id, user.email, user.role);
+    await this.updateRtHash(user._id, tokens.refresh_token);
     return {
       access_token: tokens.access_token,
     };
@@ -169,10 +165,14 @@ export class AuthService {
   private async validateUser(
     email: string,
     password: string,
-  ): Promise<Pick<UserModel, 'email' | '_id' | 'role'>> {
+  ): Promise<Pick<IUser, 'email' | '_id' | 'role'>> {
     const user = await this.getDataUser({ email });
     const isMatch = await compare(password, user.password);
     if (!isMatch) throw new UnauthorizedException(USER.LOGIN_EXIST);
-    return { email: user.email, role: user.role, _id: user._id };
+    return {
+      email: user.email,
+      role: user.role,
+      _id: <Types.ObjectId>user._id,
+    };
   }
 }
